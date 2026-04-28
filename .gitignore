@@ -1,0 +1,10 @@
+/.env
+/.env.*
+!/.env.example
+/.DS_Store
+/.idea/
+/.vscode/
+/target/
+**/*.rs.bk
+*.swp
+*.swo

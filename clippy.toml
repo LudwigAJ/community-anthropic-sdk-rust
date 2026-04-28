@@ -1,0 +1,2 @@
+# Keep repository lint behavior explicit while public APIs are still being shaped.
+avoid-breaking-exported-api = false

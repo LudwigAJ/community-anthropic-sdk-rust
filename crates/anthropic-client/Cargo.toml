@@ -1,0 +1,38 @@
+[package]
+name = "anthropic-client"
+version = "0.1.0"
+description = "Idiomatic, typed, async Rust client for Anthropic's Claude API. Independent community SDK."
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation = "https://docs.rs/anthropic-client"
+readme = "../../README.md"
+keywords = ["anthropic", "claude", "ai", "llm", "sdk"]
+categories = ["api-bindings", "asynchronous"]
+publish = false
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+[dependencies]
+anthropic-types = { workspace = true }
+# Used for byte chunks and Stream polling in the initial SSE transport.
+bytes = { workspace = true }
+futures-util = { workspace = true }
+reqwest = { workspace = true }
+secrecy = { workspace = true }
+# Used for typed non-streaming response decoding at the transport boundary.
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+# Used for retry backoff sleeps in the async transport loop.
+tokio = { workspace = true }
+tracing = { workspace = true }
+url = { workspace = true }
+
+[lints]
+workspace = true

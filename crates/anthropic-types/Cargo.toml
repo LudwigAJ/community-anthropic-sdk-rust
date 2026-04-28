@@ -1,0 +1,28 @@
+[package]
+name = "anthropic-types"
+version = "0.1.0"
+description = "Typed serde request and response models for Anthropic's Claude API. Data layer of community-anthropic-sdk-rust."
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation = "https://docs.rs/anthropic-types"
+readme = "../../README.md"
+keywords = ["anthropic", "claude", "ai", "llm", "serde"]
+categories = ["api-bindings", "encoding"]
+publish = false
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+# Public model constructors and builders expose typed validation errors.
+thiserror = { workspace = true }
+
+[lints]
+workspace = true
