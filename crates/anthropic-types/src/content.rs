@@ -71,6 +71,68 @@ pub enum ContentBlock {
         /// JSON input for the selected tool.
         input: serde_json::Value,
     },
+    /// A server-side tool-use request.
+    ServerToolUse {
+        /// API-generated tool-use identifier.
+        id: String,
+        /// Tool invocation source.
+        caller: ServerToolCaller,
+        /// Server tool name requested by the model.
+        name: String,
+        /// JSON input for the selected server tool.
+        input: serde_json::Value,
+    },
+    /// A web search server-tool result.
+    WebSearchToolResult {
+        /// Tool invocation source.
+        caller: ServerToolCaller,
+        /// Result content or error.
+        content: WebSearchToolResultContent,
+        /// Identifier of the server-tool-use block this result answers.
+        tool_use_id: String,
+    },
+    /// A web fetch server-tool result.
+    WebFetchToolResult {
+        /// Tool invocation source.
+        caller: ServerToolCaller,
+        /// Result content or error.
+        content: WebFetchToolResultContent,
+        /// Identifier of the server-tool-use block this result answers.
+        tool_use_id: String,
+    },
+    /// A code execution server-tool result.
+    CodeExecutionToolResult {
+        /// Result content or error.
+        content: CodeExecutionToolResultContent,
+        /// Identifier of the server-tool-use block this result answers.
+        tool_use_id: String,
+    },
+    /// A bash code execution server-tool result.
+    BashCodeExecutionToolResult {
+        /// Result content or error.
+        content: BashCodeExecutionToolResultContent,
+        /// Identifier of the server-tool-use block this result answers.
+        tool_use_id: String,
+    },
+    /// A text editor code execution server-tool result.
+    TextEditorCodeExecutionToolResult {
+        /// Result content or error.
+        content: TextEditorCodeExecutionToolResultContent,
+        /// Identifier of the server-tool-use block this result answers.
+        tool_use_id: String,
+    },
+    /// A tool-search server-tool result.
+    ToolSearchToolResult {
+        /// Result content or error.
+        content: ToolSearchToolResultContent,
+        /// Identifier of the server-tool-use block this result answers.
+        tool_use_id: String,
+    },
+    /// A file uploaded into a code execution container.
+    ContainerUpload {
+        /// Uploaded container file identifier.
+        file_id: String,
+    },
     /// A tool result supplied back to the model.
     ToolResult {
         /// Identifier of the tool-use block this result answers.
@@ -78,6 +140,14 @@ pub enum ContentBlock {
         /// Result content blocks.
         content: Vec<ContentBlock>,
     },
+    /// An unknown future or provider-specific response content block.
+    ///
+    /// The current representation preserves forward-compatible deserialization
+    /// without preserving arbitrary unknown fields. Known provider-specific data
+    /// that must round-trip should be modeled explicitly before callers depend on
+    /// replaying it.
+    #[serde(other)]
+    Other,
 }
 
 impl ContentBlock {
@@ -270,6 +340,95 @@ pub enum ContentBlockParam {
         /// JSON input for the selected tool.
         input: serde_json::Value,
         /// Optional cache control marker for this tool-use replay block.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        cache_control: Option<CacheControl>,
+    },
+    /// A server-side tool-use request supplied back for conversation replay.
+    ServerToolUse {
+        /// API-generated tool-use identifier.
+        id: String,
+        /// Server tool name requested by the model.
+        name: String,
+        /// JSON input for the selected server tool.
+        input: serde_json::Value,
+        /// Optional cache control marker for this server-tool-use replay block.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        cache_control: Option<CacheControl>,
+        /// Tool invocation source.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        caller: Option<ServerToolCaller>,
+    },
+    /// A web search server-tool result supplied by the caller.
+    WebSearchToolResult {
+        /// Result content or error.
+        content: WebSearchToolResultContentParam,
+        /// Identifier of the server-tool-use block this result answers.
+        tool_use_id: String,
+        /// Optional cache control marker for this block.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        cache_control: Option<CacheControl>,
+        /// Tool invocation source.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        caller: Option<ServerToolCaller>,
+    },
+    /// A web fetch server-tool result supplied by the caller.
+    WebFetchToolResult {
+        /// Result content or error.
+        content: WebFetchToolResultContentParam,
+        /// Identifier of the server-tool-use block this result answers.
+        tool_use_id: String,
+        /// Optional cache control marker for this block.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        cache_control: Option<CacheControl>,
+        /// Tool invocation source.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        caller: Option<ServerToolCaller>,
+    },
+    /// A code execution server-tool result supplied by the caller.
+    CodeExecutionToolResult {
+        /// Result content or error.
+        content: CodeExecutionToolResultContent,
+        /// Identifier of the server-tool-use block this result answers.
+        tool_use_id: String,
+        /// Optional cache control marker for this block.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        cache_control: Option<CacheControl>,
+    },
+    /// A bash code execution server-tool result supplied by the caller.
+    BashCodeExecutionToolResult {
+        /// Result content or error.
+        content: BashCodeExecutionToolResultContent,
+        /// Identifier of the server-tool-use block this result answers.
+        tool_use_id: String,
+        /// Optional cache control marker for this block.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        cache_control: Option<CacheControl>,
+    },
+    /// A text editor code execution server-tool result supplied by the caller.
+    TextEditorCodeExecutionToolResult {
+        /// Result content or error.
+        content: TextEditorCodeExecutionToolResultContentParam,
+        /// Identifier of the server-tool-use block this result answers.
+        tool_use_id: String,
+        /// Optional cache control marker for this block.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        cache_control: Option<CacheControl>,
+    },
+    /// A tool-search server-tool result supplied by the caller.
+    ToolSearchToolResult {
+        /// Result content or error.
+        content: ToolSearchToolResultContentParam,
+        /// Identifier of the server-tool-use block this result answers.
+        tool_use_id: String,
+        /// Optional cache control marker for this block.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        cache_control: Option<CacheControl>,
+    },
+    /// A file uploaded into a code execution container.
+    ContainerUpload {
+        /// Uploaded container file identifier.
+        file_id: String,
+        /// Optional cache control marker for this block.
         #[serde(skip_serializing_if = "Option::is_none")]
         cache_control: Option<CacheControl>,
     },
@@ -512,6 +671,81 @@ impl ContentBlockParam {
                 id,
                 name,
                 input,
+                cache_control: Some(cache_control),
+            }),
+            Self::ServerToolUse {
+                id,
+                name,
+                input,
+                caller,
+                ..
+            } => Ok(Self::ServerToolUse {
+                id,
+                name,
+                input,
+                caller,
+                cache_control: Some(cache_control),
+            }),
+            Self::WebSearchToolResult {
+                content,
+                tool_use_id,
+                caller,
+                ..
+            } => Ok(Self::WebSearchToolResult {
+                content,
+                tool_use_id,
+                caller,
+                cache_control: Some(cache_control),
+            }),
+            Self::WebFetchToolResult {
+                content,
+                tool_use_id,
+                caller,
+                ..
+            } => Ok(Self::WebFetchToolResult {
+                content,
+                tool_use_id,
+                caller,
+                cache_control: Some(cache_control),
+            }),
+            Self::CodeExecutionToolResult {
+                content,
+                tool_use_id,
+                ..
+            } => Ok(Self::CodeExecutionToolResult {
+                content,
+                tool_use_id,
+                cache_control: Some(cache_control),
+            }),
+            Self::BashCodeExecutionToolResult {
+                content,
+                tool_use_id,
+                ..
+            } => Ok(Self::BashCodeExecutionToolResult {
+                content,
+                tool_use_id,
+                cache_control: Some(cache_control),
+            }),
+            Self::TextEditorCodeExecutionToolResult {
+                content,
+                tool_use_id,
+                ..
+            } => Ok(Self::TextEditorCodeExecutionToolResult {
+                content,
+                tool_use_id,
+                cache_control: Some(cache_control),
+            }),
+            Self::ToolSearchToolResult {
+                content,
+                tool_use_id,
+                ..
+            } => Ok(Self::ToolSearchToolResult {
+                content,
+                tool_use_id,
+                cache_control: Some(cache_control),
+            }),
+            Self::ContainerUpload { file_id, .. } => Ok(Self::ContainerUpload {
+                file_id,
                 cache_control: Some(cache_control),
             }),
             Self::ToolResult {
@@ -1280,6 +1514,96 @@ impl TryFrom<ContentBlock> for ContentBlockParam {
             ContentBlock::ToolUse { id, name, input } => {
                 Self::tool_use(id, name, input).map_err(ContentBlockParamConversionError::ToolName)
             }
+            ContentBlock::ServerToolUse {
+                id,
+                caller,
+                name,
+                input,
+            } => Ok(Self::ServerToolUse {
+                id,
+                name,
+                input,
+                cache_control: None,
+                caller: Some(caller),
+            }),
+            ContentBlock::WebSearchToolResult {
+                caller,
+                content,
+                tool_use_id,
+            } => Ok(Self::WebSearchToolResult {
+                content,
+                tool_use_id,
+                cache_control: None,
+                caller: Some(caller),
+            }),
+            ContentBlock::WebFetchToolResult {
+                caller,
+                content,
+                tool_use_id,
+            } => Ok(Self::WebFetchToolResult {
+                content: match content {
+                    WebFetchToolResultContent::Error(error) => {
+                        WebFetchToolResultContentParam::Error(error)
+                    }
+                    WebFetchToolResultContent::Result(_) => {
+                        return Err(ContentBlockParamConversionError::UnsupportedContentBlock {
+                            block_type: "web_fetch_tool_result",
+                        });
+                    }
+                },
+                tool_use_id,
+                cache_control: None,
+                caller: Some(caller),
+            }),
+            ContentBlock::CodeExecutionToolResult {
+                content,
+                tool_use_id,
+            } => Ok(Self::CodeExecutionToolResult {
+                content,
+                tool_use_id,
+                cache_control: None,
+            }),
+            ContentBlock::BashCodeExecutionToolResult {
+                content,
+                tool_use_id,
+            } => Ok(Self::BashCodeExecutionToolResult {
+                content,
+                tool_use_id,
+                cache_control: None,
+            }),
+            ContentBlock::TextEditorCodeExecutionToolResult {
+                content,
+                tool_use_id,
+            } => Ok(Self::TextEditorCodeExecutionToolResult {
+                content,
+                tool_use_id,
+                cache_control: None,
+            }),
+            ContentBlock::ToolSearchToolResult {
+                content,
+                tool_use_id,
+            } => Ok(Self::ToolSearchToolResult {
+                content: match content {
+                    ToolSearchToolResultContent::Error(error) => {
+                        ToolSearchToolResultContentParam::Error(ToolSearchToolResultErrorParam {
+                            error_code: error.error_code,
+                            block_type: error.block_type,
+                        })
+                    }
+                    ToolSearchToolResultContent::SearchResult(result) => {
+                        ToolSearchToolResultContentParam::SearchResult(result)
+                    }
+                },
+                tool_use_id,
+                cache_control: None,
+            }),
+            ContentBlock::ContainerUpload { file_id } => Ok(Self::ContainerUpload {
+                file_id,
+                cache_control: None,
+            }),
+            ContentBlock::Other => Err(ContentBlockParamConversionError::UnsupportedContentBlock {
+                block_type: "unknown",
+            }),
             ContentBlock::ToolResult { .. } => {
                 Err(ContentBlockParamConversionError::UnsupportedContentBlock {
                     block_type: "tool_result",
@@ -1313,6 +1637,96 @@ impl TryFrom<&ContentBlock> for ContentBlockParam {
                 Self::tool_use(id.clone(), name.as_str(), input.clone())
                     .map_err(ContentBlockParamConversionError::ToolName)
             }
+            ContentBlock::ServerToolUse {
+                id,
+                caller,
+                name,
+                input,
+            } => Ok(Self::ServerToolUse {
+                id: id.clone(),
+                name: name.clone(),
+                input: input.clone(),
+                cache_control: None,
+                caller: Some(caller.clone()),
+            }),
+            ContentBlock::WebSearchToolResult {
+                caller,
+                content,
+                tool_use_id,
+            } => Ok(Self::WebSearchToolResult {
+                content: content.clone(),
+                tool_use_id: tool_use_id.clone(),
+                cache_control: None,
+                caller: Some(caller.clone()),
+            }),
+            ContentBlock::WebFetchToolResult {
+                caller,
+                content,
+                tool_use_id,
+            } => Ok(Self::WebFetchToolResult {
+                content: match content {
+                    WebFetchToolResultContent::Error(error) => {
+                        WebFetchToolResultContentParam::Error(error.clone())
+                    }
+                    WebFetchToolResultContent::Result(_) => {
+                        return Err(ContentBlockParamConversionError::UnsupportedContentBlock {
+                            block_type: "web_fetch_tool_result",
+                        });
+                    }
+                },
+                tool_use_id: tool_use_id.clone(),
+                cache_control: None,
+                caller: Some(caller.clone()),
+            }),
+            ContentBlock::CodeExecutionToolResult {
+                content,
+                tool_use_id,
+            } => Ok(Self::CodeExecutionToolResult {
+                content: content.clone(),
+                tool_use_id: tool_use_id.clone(),
+                cache_control: None,
+            }),
+            ContentBlock::BashCodeExecutionToolResult {
+                content,
+                tool_use_id,
+            } => Ok(Self::BashCodeExecutionToolResult {
+                content: content.clone(),
+                tool_use_id: tool_use_id.clone(),
+                cache_control: None,
+            }),
+            ContentBlock::TextEditorCodeExecutionToolResult {
+                content,
+                tool_use_id,
+            } => Ok(Self::TextEditorCodeExecutionToolResult {
+                content: content.clone(),
+                tool_use_id: tool_use_id.clone(),
+                cache_control: None,
+            }),
+            ContentBlock::ToolSearchToolResult {
+                content,
+                tool_use_id,
+            } => Ok(Self::ToolSearchToolResult {
+                content: match content {
+                    ToolSearchToolResultContent::Error(error) => {
+                        ToolSearchToolResultContentParam::Error(ToolSearchToolResultErrorParam {
+                            error_code: error.error_code.clone(),
+                            block_type: error.block_type,
+                        })
+                    }
+                    ToolSearchToolResultContent::SearchResult(result) => {
+                        ToolSearchToolResultContentParam::SearchResult(result.clone())
+                    }
+                },
+                tool_use_id: tool_use_id.clone(),
+                cache_control: None,
+            }),
+            ContentBlock::ContainerUpload { file_id } => Ok(Self::ContainerUpload {
+                file_id: file_id.clone(),
+                cache_control: None,
+            }),
+            ContentBlock::Other => Err(ContentBlockParamConversionError::UnsupportedContentBlock {
+                block_type: "unknown",
+            }),
             ContentBlock::ToolResult { .. } => {
                 Err(ContentBlockParamConversionError::UnsupportedContentBlock {
                     block_type: "tool_result",
@@ -1369,6 +1783,586 @@ impl ToolResultContent {
     }
 }
 
+/// Tool invocation source for server-side tool blocks.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum ServerToolCaller {
+    /// The model invoked the tool directly.
+    Direct,
+    /// A 2025-08-25 code execution tool invoked the tool.
+    #[serde(rename = "code_execution_20250825")]
+    CodeExecution20250825 {
+        /// Identifier of the calling server tool use.
+        tool_id: String,
+    },
+    /// A 2026-01-20 code execution tool invoked the tool.
+    #[serde(rename = "code_execution_20260120")]
+    CodeExecution20260120 {
+        /// Identifier of the calling server tool use.
+        tool_id: String,
+    },
+}
+
+/// A response-side document block used inside web fetch results.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct DocumentBlock {
+    /// Document source.
+    pub source: DocumentSourceParam,
+    /// Optional title for the document.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    /// Optional context for the document.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub context: Option<String>,
+    /// Citation configuration for the document, when returned.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub citations: Option<CitationsConfigParam>,
+}
+
+/// A code execution output file block.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CodeExecutionOutputBlock {
+    /// Generated file identifier.
+    pub file_id: String,
+    /// Output block discriminator.
+    #[serde(rename = "type")]
+    pub block_type: CodeExecutionOutputBlockType,
+}
+
+/// Wire discriminator for code execution output file blocks.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CodeExecutionOutputBlockType {
+    /// The `code_execution_output` block type.
+    #[serde(rename = "code_execution_output")]
+    CodeExecutionOutput,
+}
+
+/// A code execution result block.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct CodeExecutionResultBlock {
+    /// Output files generated by the execution.
+    pub content: Vec<CodeExecutionOutputBlock>,
+    /// Process return code.
+    pub return_code: i32,
+    /// Standard error output.
+    pub stderr: String,
+    /// Standard output.
+    pub stdout: String,
+    /// Result block discriminator.
+    #[serde(rename = "type")]
+    pub block_type: CodeExecutionResultBlockType,
+}
+
+/// Wire discriminator for code execution result blocks.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CodeExecutionResultBlockType {
+    /// The `code_execution_result` block type.
+    #[serde(rename = "code_execution_result")]
+    CodeExecutionResult,
+}
+
+/// A code execution result block with encrypted stdout.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct EncryptedCodeExecutionResultBlock {
+    /// Output files generated by the execution.
+    pub content: Vec<CodeExecutionOutputBlock>,
+    /// Encrypted standard output.
+    pub encrypted_stdout: String,
+    /// Process return code.
+    pub return_code: i32,
+    /// Standard error output.
+    pub stderr: String,
+    /// Result block discriminator.
+    #[serde(rename = "type")]
+    pub block_type: EncryptedCodeExecutionResultBlockType,
+}
+
+/// Wire discriminator for encrypted code execution result blocks.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum EncryptedCodeExecutionResultBlockType {
+    /// The `encrypted_code_execution_result` block type.
+    #[serde(rename = "encrypted_code_execution_result")]
+    EncryptedCodeExecutionResult,
+}
+
+/// An error returned by the code execution server tool.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CodeExecutionToolResultError {
+    /// Provider error code.
+    pub error_code: String,
+    /// Error block discriminator.
+    #[serde(rename = "type")]
+    pub block_type: CodeExecutionToolResultErrorType,
+}
+
+/// Wire discriminator for code execution tool result errors.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CodeExecutionToolResultErrorType {
+    /// The `code_execution_tool_result_error` block type.
+    #[serde(rename = "code_execution_tool_result_error")]
+    CodeExecutionToolResultError,
+}
+
+/// Code execution server-tool result content.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum CodeExecutionToolResultContent {
+    /// A tool execution error.
+    Error(CodeExecutionToolResultError),
+    /// Plain execution result.
+    Result(CodeExecutionResultBlock),
+    /// Execution result with encrypted stdout.
+    EncryptedResult(EncryptedCodeExecutionResultBlock),
+}
+
+/// A bash code execution output file block.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BashCodeExecutionOutputBlock {
+    /// Generated file identifier.
+    pub file_id: String,
+    /// Output block discriminator.
+    #[serde(rename = "type")]
+    pub block_type: BashCodeExecutionOutputBlockType,
+}
+
+/// Wire discriminator for bash code execution output file blocks.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum BashCodeExecutionOutputBlockType {
+    /// The `bash_code_execution_output` block type.
+    #[serde(rename = "bash_code_execution_output")]
+    BashCodeExecutionOutput,
+}
+
+/// A bash code execution result block.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct BashCodeExecutionResultBlock {
+    /// Output files generated by the execution.
+    pub content: Vec<BashCodeExecutionOutputBlock>,
+    /// Process return code.
+    pub return_code: i32,
+    /// Standard error output.
+    pub stderr: String,
+    /// Standard output.
+    pub stdout: String,
+    /// Result block discriminator.
+    #[serde(rename = "type")]
+    pub block_type: BashCodeExecutionResultBlockType,
+}
+
+/// Wire discriminator for bash code execution result blocks.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum BashCodeExecutionResultBlockType {
+    /// The `bash_code_execution_result` block type.
+    #[serde(rename = "bash_code_execution_result")]
+    BashCodeExecutionResult,
+}
+
+/// An error returned by the bash code execution server tool.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BashCodeExecutionToolResultError {
+    /// Provider error code.
+    pub error_code: String,
+    /// Error block discriminator.
+    #[serde(rename = "type")]
+    pub block_type: BashCodeExecutionToolResultErrorType,
+}
+
+/// Wire discriminator for bash code execution tool result errors.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum BashCodeExecutionToolResultErrorType {
+    /// The `bash_code_execution_tool_result_error` block type.
+    #[serde(rename = "bash_code_execution_tool_result_error")]
+    BashCodeExecutionToolResultError,
+}
+
+/// Bash code execution server-tool result content.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum BashCodeExecutionToolResultContent {
+    /// A tool execution error.
+    Error(BashCodeExecutionToolResultError),
+    /// Plain execution result.
+    Result(BashCodeExecutionResultBlock),
+}
+
+/// The result of a text editor create command.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TextEditorCodeExecutionCreateResultBlock {
+    /// Whether the command updated a file.
+    pub is_file_update: bool,
+    /// Result block discriminator.
+    #[serde(rename = "type")]
+    pub block_type: TextEditorCodeExecutionCreateResultBlockType,
+}
+
+/// Wire discriminator for text editor create results.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TextEditorCodeExecutionCreateResultBlockType {
+    /// The `text_editor_code_execution_create_result` block type.
+    #[serde(rename = "text_editor_code_execution_create_result")]
+    TextEditorCodeExecutionCreateResult,
+}
+
+/// The result of a text editor string-replacement command.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TextEditorCodeExecutionStrReplaceResultBlock {
+    /// Lines included in the diff result, when returned.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lines: Option<Vec<String>>,
+    /// Number of new lines, when returned.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub new_lines: Option<u32>,
+    /// New start line, when returned.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub new_start: Option<u32>,
+    /// Number of old lines, when returned.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub old_lines: Option<u32>,
+    /// Old start line, when returned.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub old_start: Option<u32>,
+    /// Result block discriminator.
+    #[serde(rename = "type")]
+    pub block_type: TextEditorCodeExecutionStrReplaceResultBlockType,
+}
+
+/// Wire discriminator for text editor string-replacement results.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TextEditorCodeExecutionStrReplaceResultBlockType {
+    /// The `text_editor_code_execution_str_replace_result` block type.
+    #[serde(rename = "text_editor_code_execution_str_replace_result")]
+    TextEditorCodeExecutionStrReplaceResult,
+}
+
+/// A file type returned by a text editor view command.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TextEditorCodeExecutionViewFileType {
+    /// Plain text content.
+    Text,
+    /// Image content.
+    Image,
+    /// PDF content.
+    Pdf,
+}
+
+/// The result of a text editor view command.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TextEditorCodeExecutionViewResultBlock {
+    /// Viewed content.
+    pub content: String,
+    /// File type of the viewed content.
+    pub file_type: TextEditorCodeExecutionViewFileType,
+    /// Number of included lines, when returned.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub num_lines: Option<u32>,
+    /// First included line, when returned.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub start_line: Option<u32>,
+    /// Total lines in the file, when returned.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub total_lines: Option<u32>,
+    /// Result block discriminator.
+    #[serde(rename = "type")]
+    pub block_type: TextEditorCodeExecutionViewResultBlockType,
+}
+
+/// Wire discriminator for text editor view results.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TextEditorCodeExecutionViewResultBlockType {
+    /// The `text_editor_code_execution_view_result` block type.
+    #[serde(rename = "text_editor_code_execution_view_result")]
+    TextEditorCodeExecutionViewResult,
+}
+
+/// An error returned by the text editor code execution server tool.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TextEditorCodeExecutionToolResultError {
+    /// Provider error code.
+    pub error_code: String,
+    /// Human-readable error message, when returned.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error_message: Option<String>,
+    /// Error block discriminator.
+    #[serde(rename = "type")]
+    pub block_type: TextEditorCodeExecutionToolResultErrorType,
+}
+
+/// Wire discriminator for text editor code execution tool result errors.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TextEditorCodeExecutionToolResultErrorType {
+    /// The `text_editor_code_execution_tool_result_error` block type.
+    #[serde(rename = "text_editor_code_execution_tool_result_error")]
+    TextEditorCodeExecutionToolResultError,
+}
+
+/// Text editor code execution server-tool result content.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum TextEditorCodeExecutionToolResultContent {
+    /// A tool execution error.
+    Error(TextEditorCodeExecutionToolResultError),
+    /// View command result.
+    View(TextEditorCodeExecutionViewResultBlock),
+    /// Create command result.
+    Create(TextEditorCodeExecutionCreateResultBlock),
+    /// String-replacement command result.
+    StrReplace(TextEditorCodeExecutionStrReplaceResultBlock),
+}
+
+/// Request-side text editor result content.
+pub type TextEditorCodeExecutionToolResultContentParam = TextEditorCodeExecutionToolResultContent;
+
+/// A reference to a tool returned by tool search.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ToolReferenceBlock {
+    /// Referenced tool name.
+    pub tool_name: String,
+    /// Reference block discriminator.
+    #[serde(rename = "type")]
+    pub block_type: ToolReferenceBlockType,
+}
+
+/// Wire discriminator for tool reference blocks.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ToolReferenceBlockType {
+    /// The `tool_reference` block type.
+    #[serde(rename = "tool_reference")]
+    ToolReference,
+}
+
+/// A successful tool-search result.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ToolSearchToolSearchResultBlock {
+    /// Tool references returned by the search.
+    pub tool_references: Vec<ToolReferenceBlock>,
+    /// Result block discriminator.
+    #[serde(rename = "type")]
+    pub block_type: ToolSearchToolSearchResultBlockType,
+}
+
+/// Wire discriminator for tool-search result blocks.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ToolSearchToolSearchResultBlockType {
+    /// The `tool_search_tool_search_result` block type.
+    #[serde(rename = "tool_search_tool_search_result")]
+    ToolSearchToolSearchResult,
+}
+
+/// An error returned by a tool-search server tool.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ToolSearchToolResultError {
+    /// Provider error code.
+    pub error_code: String,
+    /// Human-readable error message, when returned.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error_message: Option<String>,
+    /// Error block discriminator.
+    #[serde(rename = "type")]
+    pub block_type: ToolSearchToolResultErrorType,
+}
+
+/// Request-side tool-search result error.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ToolSearchToolResultErrorParam {
+    /// Provider error code.
+    pub error_code: String,
+    /// Error block discriminator.
+    #[serde(rename = "type")]
+    pub block_type: ToolSearchToolResultErrorType,
+}
+
+/// Wire discriminator for tool-search result errors.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ToolSearchToolResultErrorType {
+    /// The `tool_search_tool_result_error` block type.
+    #[serde(rename = "tool_search_tool_result_error")]
+    ToolSearchToolResultError,
+}
+
+/// Tool-search server-tool result content.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum ToolSearchToolResultContent {
+    /// A tool-search error.
+    Error(ToolSearchToolResultError),
+    /// Tool references returned by the search.
+    SearchResult(ToolSearchToolSearchResultBlock),
+}
+
+/// Request-side tool-search server-tool result content.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum ToolSearchToolResultContentParam {
+    /// A tool-search error.
+    Error(ToolSearchToolResultErrorParam),
+    /// Tool references returned by the search.
+    SearchResult(ToolSearchToolSearchResultBlock),
+}
+
+/// A fetched web document.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct WebFetchBlock {
+    /// Fetched document content.
+    pub content: DocumentBlock,
+    /// ISO 8601 retrieval timestamp, when returned.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub retrieved_at: Option<String>,
+    /// Result block discriminator.
+    #[serde(rename = "type")]
+    pub block_type: WebFetchBlockType,
+    /// Fetched content URL.
+    pub url: String,
+}
+
+/// Request-side fetched web document.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct WebFetchBlockParam {
+    /// Fetched document content.
+    pub content: Box<ContentBlockParam>,
+    /// Result block discriminator.
+    #[serde(rename = "type")]
+    pub block_type: WebFetchBlockType,
+    /// Fetched content URL.
+    pub url: String,
+    /// ISO 8601 retrieval timestamp, when returned.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub retrieved_at: Option<String>,
+}
+
+/// Wire discriminator for web fetch result blocks.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum WebFetchBlockType {
+    /// The `web_fetch_result` block type.
+    #[serde(rename = "web_fetch_result")]
+    WebFetchResult,
+}
+
+/// An error returned by the web fetch server tool.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WebFetchToolResultErrorBlock {
+    /// Provider error code.
+    pub error_code: String,
+    /// Error block discriminator.
+    #[serde(rename = "type")]
+    pub block_type: WebFetchToolResultErrorBlockType,
+}
+
+/// Wire discriminator for web fetch result errors.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum WebFetchToolResultErrorBlockType {
+    /// The `web_fetch_tool_result_error` block type.
+    #[serde(rename = "web_fetch_tool_result_error")]
+    WebFetchToolResultError,
+}
+
+/// Web fetch server-tool result content.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum WebFetchToolResultContent {
+    /// A web fetch error.
+    Error(WebFetchToolResultErrorBlock),
+    /// Fetched document result.
+    Result(WebFetchBlock),
+}
+
+/// Request-side web fetch server-tool result content.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum WebFetchToolResultContentParam {
+    /// A web fetch error.
+    Error(WebFetchToolResultErrorBlock),
+    /// Fetched document result.
+    Result(WebFetchBlockParam),
+}
+
+/// One web search result returned by the web search server tool.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WebSearchResultBlock {
+    /// Opaque encrypted result content.
+    pub encrypted_content: String,
+    /// Age of the page, when returned.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub page_age: Option<String>,
+    /// Result title.
+    pub title: String,
+    /// Result block discriminator.
+    #[serde(rename = "type")]
+    pub block_type: WebSearchResultBlockType,
+    /// Result URL.
+    pub url: String,
+}
+
+/// Wire discriminator for web search result blocks.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum WebSearchResultBlockType {
+    /// The `web_search_result` block type.
+    #[serde(rename = "web_search_result")]
+    WebSearchResult,
+}
+
+/// An error returned by the web search server tool.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WebSearchToolResultError {
+    /// Provider error code.
+    pub error_code: String,
+    /// Error block discriminator.
+    #[serde(rename = "type")]
+    pub block_type: WebSearchToolResultErrorType,
+}
+
+/// Wire discriminator for web search result errors.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum WebSearchToolResultErrorType {
+    /// The `web_search_tool_result_error` block type.
+    #[serde(rename = "web_search_tool_result_error")]
+    WebSearchToolResultError,
+}
+
+/// Web search server-tool result content.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum WebSearchToolResultContent {
+    /// A web search error.
+    Error(WebSearchToolResultError),
+    /// Web search result list.
+    Results(Vec<WebSearchResultBlock>),
+}
+
+/// Request-side web search server-tool result content.
+pub type WebSearchToolResultContentParam = WebSearchToolResultContent;
+
+/// Response model for a file uploaded to a code execution container.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ContainerUploadBlock {
+    /// Uploaded container file identifier.
+    pub file_id: String,
+    /// Upload block discriminator.
+    #[serde(rename = "type")]
+    pub block_type: ContainerUploadBlockType,
+}
+
+/// Request-side file upload block for a code execution container.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ContainerUploadBlockParam {
+    /// Uploaded container file identifier.
+    pub file_id: String,
+    /// Upload block discriminator.
+    #[serde(rename = "type")]
+    pub block_type: ContainerUploadBlockType,
+    /// Optional cache control marker for this block.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cache_control: Option<CacheControl>,
+}
+
+/// Wire discriminator for container upload blocks.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ContainerUploadBlockType {
+    /// The `container_upload` block type.
+    #[serde(rename = "container_upload")]
+    ContainerUpload,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1394,6 +2388,94 @@ mod tests {
                 "data": "Redacted"
             })
         );
+        Ok(())
+    }
+
+    #[test]
+    fn content_block_deserializes_server_tool_use() -> Result<(), Box<dyn std::error::Error>> {
+        let block = serde_json::from_str::<ContentBlock>(
+            r#"{
+                "type": "server_tool_use",
+                "id": "srvtoolu_01",
+                "caller": { "type": "direct" },
+                "name": "web_search",
+                "input": { "query": "rust sdk" }
+            }"#,
+        )?;
+
+        assert_eq!(
+            block,
+            ContentBlock::ServerToolUse {
+                id: "srvtoolu_01".to_owned(),
+                caller: ServerToolCaller::Direct,
+                name: "web_search".to_owned(),
+                input: serde_json::json!({ "query": "rust sdk" })
+            }
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn content_block_deserializes_web_search_tool_result() -> Result<(), Box<dyn std::error::Error>>
+    {
+        let block = serde_json::from_str::<ContentBlock>(
+            r#"{
+                "type": "web_search_tool_result",
+                "tool_use_id": "srvtoolu_01",
+                "caller": { "type": "code_execution_20260120", "tool_id": "srvtoolu_code" },
+                "content": [
+                    {
+                        "type": "web_search_result",
+                        "encrypted_content": "encrypted",
+                        "page_age": null,
+                        "title": "Anthropic",
+                        "url": "https://example.com"
+                    }
+                ]
+            }"#,
+        )?;
+
+        let ContentBlock::WebSearchToolResult {
+            caller,
+            content,
+            tool_use_id,
+        } = block
+        else {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "expected web search result",
+            )
+            .into());
+        };
+
+        assert_eq!(tool_use_id, "srvtoolu_01");
+        assert_eq!(
+            caller,
+            ServerToolCaller::CodeExecution20260120 {
+                tool_id: "srvtoolu_code".to_owned()
+            }
+        );
+        assert_eq!(
+            content,
+            WebSearchToolResultContent::Results(vec![WebSearchResultBlock {
+                encrypted_content: "encrypted".to_owned(),
+                page_age: None,
+                title: "Anthropic".to_owned(),
+                block_type: WebSearchResultBlockType::WebSearchResult,
+                url: "https://example.com".to_owned()
+            }])
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn content_block_deserializes_unknown_variant_as_other()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let block = serde_json::from_str::<ContentBlock>(
+            r#"{"type":"provider_specific","payload":{"kept":true}}"#,
+        )?;
+
+        assert_eq!(block, ContentBlock::Other);
         Ok(())
     }
 

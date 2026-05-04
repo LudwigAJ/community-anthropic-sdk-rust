@@ -375,6 +375,7 @@ impl IntoMcpCallToolRequest for &ContentBlock {
 pub fn into_anthropic_tool(tool: McpTool) -> Result<Tool, McpConversionError> {
     let name = ToolName::try_new(tool.name)
         .map_err(|source| McpConversionError::InvalidToolName { source })?;
+    let description = tool.description;
     validate_input_schema(tool.input_schema.as_value())
         .map_err(|source| McpConversionError::InvalidToolInputSchema { source })?;
 
@@ -389,11 +390,21 @@ pub fn into_anthropic_tool(tool: McpTool) -> Result<Tool, McpConversionError> {
             }
         })?;
 
-    Ok(Tool {
-        name,
-        description: tool.description,
-        input_schema,
-        cache_control: None,
+    let tool = Tool::custom(name.as_str(), input_schema).map_err(|source| match source {
+        anthropic_types::ToolError::Name(source) => McpConversionError::InvalidToolName { source },
+        anthropic_types::ToolError::InputSchema(source) => {
+            McpConversionError::InvalidToolInputSchema {
+                source: match source {
+                    anthropic_types::JsonSchemaError::NotObject => {
+                        McpToolInputSchemaError::NotObject
+                    }
+                },
+            }
+        }
+    })?;
+    Ok(match description {
+        Some(description) => tool.description(description),
+        None => tool,
     })
 }
 
@@ -502,6 +513,14 @@ mod tests {
             .description("Get the current weather for a city.");
 
         let converted = tool.into_anthropic_tool()?;
+
+        let anthropic_types::Tool::Custom(converted) = converted else {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "expected custom tool",
+            )
+            .into());
+        };
 
         assert_eq!(converted.name.as_str(), "get_weather");
         assert_eq!(

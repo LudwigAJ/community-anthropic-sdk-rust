@@ -79,11 +79,31 @@ pub use batch::{
 };
 pub use cache::{CacheControl, CacheControlTtl};
 pub use content::{
-    CitationsConfigParam, ContentBlock, ContentBlockParam, ContentBlockParamCacheControlError,
+    BashCodeExecutionOutputBlock, BashCodeExecutionOutputBlockType, BashCodeExecutionResultBlock,
+    BashCodeExecutionResultBlockType, BashCodeExecutionToolResultContent,
+    BashCodeExecutionToolResultError, BashCodeExecutionToolResultErrorType, CitationsConfigParam,
+    CodeExecutionOutputBlock, CodeExecutionOutputBlockType, CodeExecutionResultBlock,
+    CodeExecutionResultBlockType, CodeExecutionToolResultContent, CodeExecutionToolResultError,
+    CodeExecutionToolResultErrorType, ContainerUploadBlock, ContainerUploadBlockParam,
+    ContainerUploadBlockType, ContentBlock, ContentBlockParam, ContentBlockParamCacheControlError,
     ContentBlockParamConversionError, ContentBlockSourceContentBlockParam,
-    ContentBlockSourceContentParam, DocumentMediaType, DocumentSourceParam, ImageSourceParam,
-    SearchResultTextBlockParam, TextCitation, TextCitationParam, ToolInputDecodeError,
-    ToolResultContent, ToolUse,
+    ContentBlockSourceContentParam, DocumentBlock, DocumentMediaType, DocumentSourceParam,
+    EncryptedCodeExecutionResultBlock, EncryptedCodeExecutionResultBlockType, ImageSourceParam,
+    SearchResultTextBlockParam, ServerToolCaller, TextCitation, TextCitationParam,
+    TextEditorCodeExecutionCreateResultBlock, TextEditorCodeExecutionCreateResultBlockType,
+    TextEditorCodeExecutionStrReplaceResultBlock, TextEditorCodeExecutionStrReplaceResultBlockType,
+    TextEditorCodeExecutionToolResultContent, TextEditorCodeExecutionToolResultContentParam,
+    TextEditorCodeExecutionToolResultError, TextEditorCodeExecutionToolResultErrorType,
+    TextEditorCodeExecutionViewFileType, TextEditorCodeExecutionViewResultBlock,
+    TextEditorCodeExecutionViewResultBlockType, ToolInputDecodeError, ToolReferenceBlock,
+    ToolReferenceBlockType, ToolResultContent, ToolSearchToolResultContent,
+    ToolSearchToolResultContentParam, ToolSearchToolResultError, ToolSearchToolResultErrorParam,
+    ToolSearchToolResultErrorType, ToolSearchToolSearchResultBlock,
+    ToolSearchToolSearchResultBlockType, ToolUse, WebFetchBlock, WebFetchBlockParam,
+    WebFetchBlockType, WebFetchToolResultContent, WebFetchToolResultContentParam,
+    WebFetchToolResultErrorBlock, WebFetchToolResultErrorBlockType, WebSearchResultBlock,
+    WebSearchResultBlockType, WebSearchToolResultContent, WebSearchToolResultContentParam,
+    WebSearchToolResultError, WebSearchToolResultErrorType,
 };
 pub use error::{ApiErrorBody, ApiErrorDetail, ApiErrorType};
 pub use message::{
@@ -107,4 +127,19 @@ pub use primitive::{
     ToolName, ToolNameError, TopK, TopKError, TopP, TopPError,
 };
 pub use stream::{ContentBlockDelta, MessageDelta, MessageDeltaUsage, MessageStreamEvent};
-pub use tool::{JsonSchema, JsonSchemaError, Tool, ToolChoice, ToolError};
+pub use tool::{
+    BashToolName, BashToolType, BuiltInToolCommon, CodeExecutionTool20250522,
+    CodeExecutionTool20250825, CodeExecutionTool20260120, CodeExecutionToolName,
+    CodeExecutionToolType20250522, CodeExecutionToolType20250825, CodeExecutionToolType20260120,
+    CustomTool, CustomToolType, JsonSchema, JsonSchemaError, MemoryTool20250818, MemoryToolName,
+    MemoryToolType20250818, TextEditorToolName20250124, TextEditorToolName20250429,
+    TextEditorToolName20250728, TextEditorToolType20250124, TextEditorToolType20250429,
+    TextEditorToolType20250728, Tool, ToolBash20250124, ToolCaller, ToolChoice, ToolError,
+    ToolSearchBm25ToolName, ToolSearchBm25ToolType20251119, ToolSearchRegexToolName,
+    ToolSearchRegexToolType20251119, ToolSearchToolBm25_20251119, ToolSearchToolRegex20251119,
+    ToolTextEditor20250124, ToolTextEditor20250429, ToolTextEditor20250728, UserLocation,
+    UserLocationType, WebFetchTool20250910, WebFetchTool20260209, WebFetchTool20260309,
+    WebFetchToolName, WebFetchToolType20250910, WebFetchToolType20260209, WebFetchToolType20260309,
+    WebSearchTool20250305, WebSearchTool20260209, WebSearchToolName, WebSearchToolType20250305,
+    WebSearchToolType20260209,
+};

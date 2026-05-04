@@ -554,6 +554,39 @@ let error_block = ContentBlockParam::tool_result_error(
 `ToolChoice` covers `Auto`, `Any`, `Tool { name }`, and `None`. Omitting
 `tool_choice` leaves the API default in effect.
 
+Custom tools remain the provider-neutral common path. They serialize without a
+server-tool discriminator unless you explicitly set one of the optional custom
+tool fields, and they work with Anthropic-compatible gateways that support the
+standard Messages tool protocol.
+
+The SDK also models Anthropic's non-beta built-in/server tool definitions as
+explicit opt-in `Tool` variants:
+
+```rust
+use anthropic_client::{MessageCreateParams, MessageParam, Model, Tool};
+
+let params = MessageCreateParams::builder()
+    .model(Model::ClaudeSonnet4_5)
+    .max_tokens(1024)
+    .message(MessageParam::user("Search the web and summarize the result."))
+    .tool(Tool::web_search_20250305())
+    .build()?;
+```
+
+Built-in tools include web search/fetch, code execution, bash, text editor,
+memory, and tool search versioned shapes. These tools are provider- and
+model-dependent; unsupported providers or models may return API errors when a
+caller opts into an unsupported built-in. The SDK never serializes a built-in
+tool unless the caller adds that variant to `tools`, so Anthropic-compatible
+gateway requests stay minimal by default.
+
+Responses can include typed `server_tool_use` and built-in result blocks such
+as `web_search_tool_result`, `web_fetch_tool_result`,
+`code_execution_tool_result`, `bash_code_execution_tool_result`,
+`text_editor_code_execution_tool_result`, `tool_search_tool_result`, and
+`container_upload`. Unknown future response content block types deserialize as
+`ContentBlock::Other`; arbitrary unknown fields are not preserved for replay.
+
 ### Structured Output
 
 ```rust

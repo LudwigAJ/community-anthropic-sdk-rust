@@ -1778,7 +1778,18 @@ fn content_block_type(block: &ContentBlock) -> &'static str {
         ContentBlock::Thinking { .. } => "thinking",
         ContentBlock::RedactedThinking { .. } => "redacted_thinking",
         ContentBlock::ToolUse { .. } => "tool_use",
+        ContentBlock::ServerToolUse { .. } => "server_tool_use",
+        ContentBlock::WebSearchToolResult { .. } => "web_search_tool_result",
+        ContentBlock::WebFetchToolResult { .. } => "web_fetch_tool_result",
+        ContentBlock::CodeExecutionToolResult { .. } => "code_execution_tool_result",
+        ContentBlock::BashCodeExecutionToolResult { .. } => "bash_code_execution_tool_result",
+        ContentBlock::TextEditorCodeExecutionToolResult { .. } => {
+            "text_editor_code_execution_tool_result"
+        }
+        ContentBlock::ToolSearchToolResult { .. } => "tool_search_tool_result",
+        ContentBlock::ContainerUpload { .. } => "container_upload",
         ContentBlock::ToolResult { .. } => "tool_result",
+        ContentBlock::Other => "unknown",
     }
 }
 
@@ -3003,6 +3014,51 @@ mod tests {
         let value = serde_json::to_value(params)?;
 
         assert_eq!(value["model"], "MiniMax-M2.7");
+        Ok(())
+    }
+
+    #[test]
+    fn count_tokens_accepts_non_beta_built_in_tools() -> Result<(), Box<dyn std::error::Error>> {
+        let params = MessageCountTokensParams::builder()
+            .model(Model::ClaudeSonnet4_5)
+            .message(MessageParam::user("Count this."))
+            .tools([
+                Tool::bash_20250124(),
+                Tool::code_execution_20250522(),
+                Tool::code_execution_20250825(),
+                Tool::code_execution_20260120(),
+                Tool::memory_20250818(),
+                Tool::text_editor_20250124(),
+                Tool::text_editor_20250429(),
+                Tool::text_editor_20250728(),
+                Tool::web_search_20250305(),
+                Tool::web_fetch_20250910(),
+                Tool::web_search_20260209(),
+                Tool::web_fetch_20260209(),
+                Tool::web_fetch_20260309(),
+                Tool::tool_search_bm25_20251119(),
+                Tool::tool_search_regex_20251119(),
+            ])
+            .build()?;
+
+        let value = serde_json::to_value(params)?;
+        let tools = &value["tools"];
+
+        assert_eq!(tools[0]["type"], "bash_20250124");
+        assert_eq!(tools[1]["type"], "code_execution_20250522");
+        assert_eq!(tools[2]["type"], "code_execution_20250825");
+        assert_eq!(tools[3]["type"], "code_execution_20260120");
+        assert_eq!(tools[4]["type"], "memory_20250818");
+        assert_eq!(tools[5]["type"], "text_editor_20250124");
+        assert_eq!(tools[6]["type"], "text_editor_20250429");
+        assert_eq!(tools[7]["type"], "text_editor_20250728");
+        assert_eq!(tools[8]["type"], "web_search_20250305");
+        assert_eq!(tools[9]["type"], "web_fetch_20250910");
+        assert_eq!(tools[10]["type"], "web_search_20260209");
+        assert_eq!(tools[11]["type"], "web_fetch_20260209");
+        assert_eq!(tools[12]["type"], "web_fetch_20260309");
+        assert_eq!(tools[13]["type"], "tool_search_tool_bm25_20251119");
+        assert_eq!(tools[14]["type"], "tool_search_tool_regex_20251119");
         Ok(())
     }
 
