@@ -4,7 +4,10 @@
 /.DS_Store
 /.idea/
 /.vscode/
+.agents/
+/.agents
 /target/
+/temp/
 **/*.rs.bk
 *.swp
 *.swo
