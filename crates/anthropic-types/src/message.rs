@@ -1881,10 +1881,35 @@ impl<'de> Deserialize<'de> for StopReason {
 /// Token usage reported by the API.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Usage {
+    /// Input tokens used to create a cache entry, when reported.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cache_creation_input_tokens: Option<u32>,
+    /// Input tokens read from the cache, when reported.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cache_read_input_tokens: Option<u32>,
     /// Input token count.
     pub input_tokens: u32,
     /// Output token count.
     pub output_tokens: u32,
+}
+
+impl Usage {
+    /// Creates usage counters without cache token details.
+    pub const fn new(input_tokens: u32, output_tokens: u32) -> Self {
+        Self {
+            cache_creation_input_tokens: None,
+            cache_read_input_tokens: None,
+            input_tokens,
+            output_tokens,
+        }
+    }
+
+    /// Returns the sum of uncached, cache-creation, and cache-read input tokens.
+    pub fn total_input_tokens(&self) -> u32 {
+        self.input_tokens
+            .saturating_add(self.cache_creation_input_tokens.unwrap_or(0))
+            .saturating_add(self.cache_read_input_tokens.unwrap_or(0))
+    }
 }
 
 #[cfg(test)]
@@ -1900,10 +1925,7 @@ mod tests {
             content,
             stop_reason: Some(StopReason::EndTurn),
             stop_sequence: None,
-            usage: Usage {
-                input_tokens: 1,
-                output_tokens: 1,
-            },
+            usage: Usage::new(1, 1),
         }
     }
 
@@ -2638,10 +2660,7 @@ mod tests {
             ],
             stop_reason: Some(StopReason::ToolUse),
             stop_sequence: None,
-            usage: Usage {
-                input_tokens: 7,
-                output_tokens: 11,
-            },
+            usage: Usage::new(7, 11),
         };
 
         let param = message.to_param()?;
@@ -2682,10 +2701,7 @@ mod tests {
             ],
             stop_reason: Some(StopReason::EndTurn),
             stop_sequence: None,
-            usage: Usage {
-                input_tokens: 1,
-                output_tokens: 1,
-            },
+            usage: Usage::new(1, 1),
         };
 
         assert_eq!(
@@ -2911,6 +2927,45 @@ mod tests {
         )?;
 
         assert_eq!(message.stop_reason, Some(StopReason::Refusal));
+        Ok(())
+    }
+
+    #[test]
+    fn usage_decodes_cache_token_counts() -> Result<(), Box<dyn std::error::Error>> {
+        let usage = serde_json::from_str::<Usage>(
+            r#"{
+                "cache_creation_input_tokens": 5,
+                "cache_read_input_tokens": 13,
+                "input_tokens": 17,
+                "output_tokens": 3
+            }"#,
+        )?;
+
+        assert_eq!(usage.cache_creation_input_tokens, Some(5));
+        assert_eq!(usage.cache_read_input_tokens, Some(13));
+        assert_eq!(usage.input_tokens, 17);
+        assert_eq!(usage.output_tokens, 3);
+        assert_eq!(usage.total_input_tokens(), 35);
+        Ok(())
+    }
+
+    #[test]
+    fn usage_keeps_cache_token_counts_optional() -> Result<(), Box<dyn std::error::Error>> {
+        let usage = serde_json::from_str::<Usage>(
+            r#"{
+                "input_tokens": 17,
+                "output_tokens": 3
+            }"#,
+        )?;
+
+        assert_eq!(usage, Usage::new(17, 3));
+        assert_eq!(
+            serde_json::to_value(usage)?,
+            serde_json::json!({
+                "input_tokens": 17,
+                "output_tokens": 3
+            })
+        );
         Ok(())
     }
 }

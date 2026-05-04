@@ -136,6 +136,10 @@ impl MessageStream {
             return Err(self.api_error_from_stream_data(&event.data));
         }
 
+        if event.data.trim() == "[DONE]" {
+            return Ok(Some(MessageStreamEvent::MessageStop));
+        }
+
         if event.data.trim().is_empty() {
             if event_name == "ping" {
                 return Ok(Some(MessageStreamEvent::Ping));
@@ -143,8 +147,16 @@ impl MessageStream {
             return Ok(None);
         }
 
-        let data = serde_json::from_str::<serde_json::Value>(&event.data)
+        let mut data = serde_json::from_str::<serde_json::Value>(&event.data)
             .map_err(|source| Error::Json { source })?;
+        if data.get("type").is_none() && is_known_stream_event_name(&event_name) {
+            if let Some(object) = data.as_object_mut() {
+                object.insert(
+                    "type".to_owned(),
+                    serde_json::Value::String(event_name.clone()),
+                );
+            }
+        }
         match serde_json::from_value::<MessageStreamEvent>(data.clone()) {
             Ok(MessageStreamEvent::Error { error }) => {
                 let body = ApiErrorBody { error };
@@ -244,7 +256,7 @@ impl MessageAccumulator {
                 message.stop_reason = delta.stop_reason;
                 message.stop_sequence = delta.stop_sequence;
                 if let Some(usage) = usage {
-                    message.usage = usage;
+                    usage.apply_to(&mut message.usage);
                 }
                 Ok(())
             }
@@ -392,6 +404,20 @@ fn missing_message_start_error(event_type: &'static str) -> Error {
     stream_error(format!(
         "unexpected {event_type} before receiving message_start"
     ))
+}
+
+fn is_known_stream_event_name(event_name: &str) -> bool {
+    matches!(
+        event_name,
+        "message_start"
+            | "content_block_start"
+            | "content_block_delta"
+            | "content_block_stop"
+            | "message_delta"
+            | "message_stop"
+            | "ping"
+            | "error"
+    )
 }
 
 impl std::fmt::Debug for MessageStream {
@@ -751,6 +777,44 @@ mod tests {
                     text: "hello".to_owned()
                 }
             }
+        );
+        assert!(stream.next().await.is_none());
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn parses_known_sse_event_name_when_payload_type_is_omitted()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let mut stream = stream_from_chunks([
+            b"event: content_block_delta\ndata: {\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"Hi\"}}\n\n"
+                as &'static [u8],
+        ]);
+
+        let event = stream
+            .next()
+            .await
+            .ok_or_else(|| std::io::Error::other("expected stream event"))??;
+
+        assert_eq!(
+            event,
+            MessageStreamEvent::ContentBlockDelta {
+                index: 0,
+                delta: ContentBlockDelta::Text {
+                    text: "Hi".to_owned()
+                },
+            }
+        );
+        assert!(stream.next().await.is_none());
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn parses_done_sentinel_as_message_stop() -> Result<(), Box<dyn std::error::Error>> {
+        let mut stream = stream_from_chunks([b"data: [DONE]\n\n" as &'static [u8]]);
+
+        assert_eq!(
+            stream.next().await.transpose()?,
+            Some(MessageStreamEvent::MessageStop)
         );
         assert!(stream.next().await.is_none());
         Ok(())
@@ -1220,13 +1284,26 @@ mod tests {
             Some(anthropic_types::StopReason::EndTurn)
         );
         assert_eq!(message.stop_sequence.as_deref(), Some("END"));
-        assert_eq!(
-            message.usage,
-            anthropic_types::Usage {
-                input_tokens: 3,
-                output_tokens: 6,
-            }
-        );
+        assert_eq!(message.usage, anthropic_types::Usage::new(3, 6));
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn final_message_merges_optional_stream_usage_fields()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let stream = stream_from_chunks([
+            b"event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"msg_01\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-sonnet-4-5\",\"content\":[],\"stop_reason\":null,\"stop_sequence\":null,\"usage\":{\"cache_creation_input_tokens\":5,\"cache_read_input_tokens\":13,\"input_tokens\":3,\"output_tokens\":0}}}\n\n" as &'static [u8],
+            b"event: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\",\"stop_sequence\":null},\"usage\":{\"output_tokens\":6}}\n\n",
+            message_stop_frame(),
+        ]);
+
+        let message = stream.final_message().await?;
+
+        assert_eq!(message.usage.input_tokens, 3);
+        assert_eq!(message.usage.cache_creation_input_tokens, Some(5));
+        assert_eq!(message.usage.cache_read_input_tokens, Some(13));
+        assert_eq!(message.usage.output_tokens, 6);
+        assert_eq!(message.usage.total_input_tokens(), 21);
         Ok(())
     }
 

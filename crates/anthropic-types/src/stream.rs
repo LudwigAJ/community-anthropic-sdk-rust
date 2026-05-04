@@ -52,7 +52,7 @@ pub enum MessageStreamEvent {
         delta: MessageDelta,
         /// Incremental usage data.
         #[serde(skip_serializing_if = "Option::is_none")]
-        usage: Option<Usage>,
+        usage: Option<MessageDeltaUsage>,
     },
     /// Message creation completed.
     MessageStop,
@@ -122,7 +122,7 @@ enum MessageStreamEventKnown {
     },
     MessageDelta {
         delta: MessageDelta,
-        usage: Option<Usage>,
+        usage: Option<MessageDeltaUsage>,
     },
     MessageStop,
     Ping,
@@ -213,6 +213,41 @@ pub struct MessageDelta {
     pub stop_sequence: Option<String>,
 }
 
+/// Cumulative token usage reported by a `message_delta` stream event.
+///
+/// Streaming usage deltas always report `output_tokens`, while providers may
+/// omit input and cache-token counters on intermediate or final delta events.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MessageDeltaUsage {
+    /// Cumulative input tokens used to create cache entries, when reported.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cache_creation_input_tokens: Option<u32>,
+    /// Cumulative input tokens read from cache, when reported.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cache_read_input_tokens: Option<u32>,
+    /// Cumulative uncached input tokens, when reported.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub input_tokens: Option<u32>,
+    /// Cumulative output tokens.
+    pub output_tokens: u32,
+}
+
+impl MessageDeltaUsage {
+    /// Applies this streaming usage delta to a full message usage snapshot.
+    pub fn apply_to(self, usage: &mut Usage) {
+        usage.output_tokens = self.output_tokens;
+        if let Some(input_tokens) = self.input_tokens {
+            usage.input_tokens = input_tokens;
+        }
+        if let Some(cache_creation_input_tokens) = self.cache_creation_input_tokens {
+            usage.cache_creation_input_tokens = Some(cache_creation_input_tokens);
+        }
+        if let Some(cache_read_input_tokens) = self.cache_read_input_tokens {
+            usage.cache_read_input_tokens = Some(cache_read_input_tokens);
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -240,8 +275,46 @@ mod tests {
                     stop_reason: Some(StopReason::EndTurn),
                     stop_sequence: None,
                 },
-                usage: Some(Usage {
-                    input_tokens: 0,
+                usage: Some(MessageDeltaUsage {
+                    cache_creation_input_tokens: None,
+                    cache_read_input_tokens: None,
+                    input_tokens: Some(0),
+                    output_tokens: 7,
+                }),
+            }
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn deserializes_message_delta_usage_with_optional_input_and_cache_tokens()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let event = serde_json::from_str::<MessageStreamEvent>(
+            r#"{
+                "type": "message_delta",
+                "delta": {
+                    "stop_reason": null,
+                    "stop_sequence": null
+                },
+                "usage": {
+                    "cache_creation_input_tokens": 5,
+                    "cache_read_input_tokens": 13,
+                    "output_tokens": 7
+                }
+            }"#,
+        )?;
+
+        assert_eq!(
+            event,
+            MessageStreamEvent::MessageDelta {
+                delta: MessageDelta {
+                    stop_reason: None,
+                    stop_sequence: None,
+                },
+                usage: Some(MessageDeltaUsage {
+                    cache_creation_input_tokens: Some(5),
+                    cache_read_input_tokens: Some(13),
+                    input_tokens: None,
                     output_tokens: 7,
                 }),
             }

@@ -392,6 +392,12 @@ if let Some(request_id) = response.request_id() {
 `PauseTurn`, `Refusal`, `Other(String)`). Unknown values round-trip through
 `Other(String)` for forward compatibility.
 
+`Message::usage` exposes `input_tokens`, `output_tokens`,
+`cache_creation_input_tokens`, and `cache_read_input_tokens`. Cache-token
+fields are optional because Anthropic-compatible providers may omit them.
+Use `Usage::total_input_tokens()` when you want the sum of uncached,
+cache-creation, and cache-read input tokens.
+
 ### Streaming
 
 Message streaming uses Server-Sent Events.
@@ -423,7 +429,9 @@ while let Some(event) = stream.next().await {
 
 `MessageStream` implements `futures_core::Stream<Item = Result<MessageStreamEvent, Error>>`
 and handles partial chunks, `ping` events, API `error` events, malformed JSON,
-early termination, and cancellation by drop.
+early termination, and cancellation by drop. For provider compatibility, it
+also accepts known SSE event names when the JSON payload omits its own `type`,
+and treats `data: [DONE]` as a stream stop marker.
 
 #### Streaming Text Convenience
 
@@ -449,7 +457,9 @@ let message = client
 The accumulator preserves text deltas, citation deltas, thinking and signature
 deltas, redacted thinking, tool-use input JSON deltas, and `message_delta`
 stop/usage fields. Malformed or incomplete tool input JSON surfaces as an SDK
-stream error at content-block completion.
+stream error at content-block completion. Streaming `message_delta` usage can
+omit input/cache counters; the accumulator updates only counters present in the
+delta and preserves earlier values from `message_start`.
 
 ### Tools
 
@@ -1017,9 +1027,9 @@ The crates and their primary entry points:
   [`ContentBlock`], [`ContentBlockParam`], [`SystemPrompt`],
   [`SystemPromptBlock`], [`Tool`], [`ToolChoice`], [`MessageBatch`],
   [`BatchCreateParams`], [`MessageBatchResult`], [`Model`], [`ModelInfo`],
-  [`Page`], [`ListParams`], and validating newtypes such as [`MaxTokens`],
-  [`Temperature`], [`TopK`], [`TopP`], [`ToolName`], [`MessageBatchId`],
-  [`RequestId`].
+  [`Usage`], [`MessageDeltaUsage`], [`Page`], [`ListParams`], and validating
+  newtypes such as [`MaxTokens`], [`Temperature`], [`TopK`], [`TopP`],
+  [`ToolName`], [`MessageBatchId`], [`RequestId`].
 - `anthropic-mcp` — [`IntoAnthropicTool`], [`IntoAnthropicToolResult`],
   [`IntoMcpCallToolRequest`] and the supporting `McpTool`,
   `McpToolResult`, `McpCallToolRequest` types.

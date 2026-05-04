@@ -510,13 +510,7 @@ mod tests {
             MessageBatchResult::Succeeded { message } => {
                 assert_eq!(message.role, Role::Assistant);
                 assert_eq!(message.stop_reason, Some(StopReason::EndTurn));
-                assert_eq!(
-                    message.usage,
-                    Usage {
-                        input_tokens: 1,
-                        output_tokens: 1,
-                    }
-                );
+                assert_eq!(message.usage, Usage::new(1, 1));
             }
             other => panic!("expected Succeeded, got {other:?}"),
         }

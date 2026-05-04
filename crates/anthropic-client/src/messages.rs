@@ -545,6 +545,8 @@ mod tests {
             "stop_reason": "end_turn",
             "stop_sequence": null,
             "usage": {
+                "cache_creation_input_tokens": 5,
+                "cache_read_input_tokens": 13,
                 "input_tokens": 8,
                 "output_tokens": 3
             }
@@ -628,8 +630,11 @@ mod tests {
         assert_eq!(message.id, "msg_01");
         assert_eq!(message.model, Model::ClaudeSonnet4_5);
         assert_eq!(message.stop_reason, Some(StopReason::EndTurn));
+        assert_eq!(message.usage.cache_creation_input_tokens, Some(5));
+        assert_eq!(message.usage.cache_read_input_tokens, Some(13));
         assert_eq!(message.usage.input_tokens, 8);
         assert_eq!(message.usage.output_tokens, 3);
+        assert_eq!(message.usage.total_input_tokens(), 26);
         assert_eq!(message.content, vec![ContentBlock::text("Hi there")]);
 
         let request = server.join()?;

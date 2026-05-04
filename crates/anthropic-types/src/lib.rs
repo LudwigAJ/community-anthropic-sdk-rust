@@ -105,5 +105,5 @@ pub use primitive::{
     McpServerUrl, McpServerUrlError, RequestId, RequestIdError, Temperature, TemperatureError,
     ToolName, ToolNameError, TopK, TopKError, TopP, TopPError,
 };
-pub use stream::{ContentBlockDelta, MessageDelta, MessageStreamEvent};
+pub use stream::{ContentBlockDelta, MessageDelta, MessageDeltaUsage, MessageStreamEvent};
 pub use tool::{JsonSchema, JsonSchemaError, Tool, ToolChoice, ToolError};
