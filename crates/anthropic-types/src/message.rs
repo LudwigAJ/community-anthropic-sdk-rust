@@ -21,8 +21,9 @@
 //!   ([`ContextTokenCount`], [`ToolUseCount`], [`ThinkingTurnCount`],
 //!   [`ThinkingTurnsKeep`], [`ToolUsesKeep`], [`InputTokensThreshold`]).
 //! - The response shape: [`Message`], [`StopReason`] (forward-compatible
-//!   via `Other(String)`), [`Usage`], [`OutputConfig`] / [`OutputFormat`],
-//!   and [`StructuredOutputError`] for `parse_json_output<T>()`.
+//!   via `Other(String)`), [`Usage`] and related telemetry details,
+//!   [`OutputConfig`] / [`OutputFormat`], and [`StructuredOutputError`] for
+//!   `parse_json_output<T>()`.
 
 use std::fmt;
 
@@ -1878,29 +1879,140 @@ impl<'de> Deserialize<'de> for StopReason {
     }
 }
 
-/// Token usage reported by the API.
+/// Breakdown of cache creation tokens by cache-control TTL.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CacheCreation {
+    /// Input tokens used to create one-hour ephemeral cache entries.
+    pub ephemeral_1h_input_tokens: u32,
+    /// Input tokens used to create five-minute ephemeral cache entries.
+    pub ephemeral_5m_input_tokens: u32,
+}
+
+/// Counts of server-side tool requests made while generating a message.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ServerToolUsage {
+    /// Number of web fetch tool requests.
+    pub web_fetch_requests: u32,
+    /// Number of web search tool requests.
+    pub web_search_requests: u32,
+}
+
+/// Service tier actually used for a message response.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum UsageServiceTier {
+    /// The request used the standard service tier.
+    Standard,
+    /// The request used the priority service tier.
+    Priority,
+    /// The request was processed through the batch tier.
+    Batch,
+    /// A service tier unknown to this SDK version.
+    Other(String),
+}
+
+impl UsageServiceTier {
+    /// Returns the API wire value for this service tier.
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::Standard => "standard",
+            Self::Priority => "priority",
+            Self::Batch => "batch",
+            Self::Other(value) => value.as_str(),
+        }
+    }
+}
+
+impl From<&str> for UsageServiceTier {
+    fn from(value: &str) -> Self {
+        match value {
+            "standard" => Self::Standard,
+            "priority" => Self::Priority,
+            "batch" => Self::Batch,
+            _ => Self::Other(value.to_owned()),
+        }
+    }
+}
+
+impl From<String> for UsageServiceTier {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+impl Serialize for UsageServiceTier {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for UsageServiceTier {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct UsageServiceTierVisitor;
+
+        impl Visitor<'_> for UsageServiceTierVisitor {
+            type Value = UsageServiceTier;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+                formatter.write_str("a usage service tier string")
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+            where
+                E: de::Error,
+            {
+                Ok(UsageServiceTier::from(value))
+            }
+        }
+
+        deserializer.deserialize_str(UsageServiceTierVisitor)
+    }
+}
+
+/// Token usage and optional telemetry reported by the API.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Usage {
+    /// Breakdown of cache creation tokens by TTL, when reported.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cache_creation: Option<CacheCreation>,
     /// Input tokens used to create a cache entry, when reported.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cache_creation_input_tokens: Option<u32>,
     /// Input tokens read from the cache, when reported.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cache_read_input_tokens: Option<u32>,
+    /// Geographic region where inference was performed, when reported.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub inference_geo: Option<String>,
     /// Input token count.
     pub input_tokens: u32,
     /// Output token count.
     pub output_tokens: u32,
+    /// Server-side tool request counts, when reported.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub server_tool_use: Option<ServerToolUsage>,
+    /// Service tier used for the request, when reported.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub service_tier: Option<UsageServiceTier>,
 }
 
 impl Usage {
     /// Creates usage counters without cache token details.
     pub const fn new(input_tokens: u32, output_tokens: u32) -> Self {
         Self {
+            cache_creation: None,
             cache_creation_input_tokens: None,
             cache_read_input_tokens: None,
+            inference_geo: None,
             input_tokens,
             output_tokens,
+            server_tool_use: None,
+            service_tier: None,
         }
     }
 
@@ -2946,6 +3058,59 @@ mod tests {
         assert_eq!(usage.input_tokens, 17);
         assert_eq!(usage.output_tokens, 3);
         assert_eq!(usage.total_input_tokens(), 35);
+        Ok(())
+    }
+
+    #[test]
+    fn usage_decodes_optional_telemetry_fields() -> Result<(), Box<dyn std::error::Error>> {
+        let usage = serde_json::from_str::<Usage>(
+            r#"{
+                "cache_creation": {
+                    "ephemeral_1h_input_tokens": 8,
+                    "ephemeral_5m_input_tokens": 21
+                },
+                "cache_creation_input_tokens": 29,
+                "cache_read_input_tokens": 13,
+                "inference_geo": "eu",
+                "input_tokens": 17,
+                "output_tokens": 3,
+                "server_tool_use": {
+                    "web_fetch_requests": 2,
+                    "web_search_requests": 5
+                },
+                "service_tier": "priority"
+            }"#,
+        )?;
+
+        assert_eq!(
+            usage.cache_creation,
+            Some(CacheCreation {
+                ephemeral_1h_input_tokens: 8,
+                ephemeral_5m_input_tokens: 21,
+            })
+        );
+        assert_eq!(usage.inference_geo.as_deref(), Some("eu"));
+        assert_eq!(
+            usage.server_tool_use,
+            Some(ServerToolUsage {
+                web_fetch_requests: 2,
+                web_search_requests: 5,
+            })
+        );
+        assert_eq!(usage.service_tier, Some(UsageServiceTier::Priority));
+        assert_eq!(usage.total_input_tokens(), 59);
+        Ok(())
+    }
+
+    #[test]
+    fn usage_service_tier_preserves_unknown_values() -> Result<(), Box<dyn std::error::Error>> {
+        let tier = serde_json::from_str::<UsageServiceTier>(r#""future_tier""#)?;
+
+        assert_eq!(tier.as_str(), "future_tier");
+        assert_eq!(
+            serde_json::to_value(tier)?,
+            serde_json::Value::String("future_tier".to_owned())
+        );
         Ok(())
     }
 

@@ -86,7 +86,7 @@ pub use stream::{MessageStream, TextStream};
 
 pub use anthropic_types::{
     BatchCreateParams, BatchCreateParamsBuilder, BatchCreateParamsError, BatchCreateRequest,
-    BatchCreateRequestError, BatchProcessingStatus, CacheControl, CacheControlTtl,
+    BatchCreateRequestError, BatchProcessingStatus, CacheControl, CacheControlTtl, CacheCreation,
     CitationsConfigParam, ClearToolInputs, ContainerId, ContainerIdError, ContentBlock,
     ContentBlockParam, ContentBlockParamCacheControlError, ContentBlockParamConversionError,
     ContentBlockSourceContentBlockParam, ContentBlockSourceContentParam, ContextManagementConfig,
@@ -101,10 +101,10 @@ pub use anthropic_types::{
     MessageCreateParams, MessageCreateParamsBuilder, MessageCreateParamsError, MessageDeltaUsage,
     MessageParam, MessageParamConversionError, MessageStreamEvent, MessageTokensCount, Model,
     ModelInfo, OutputConfig, OutputFormat, Page, RequestId, Role, SearchResultTextBlockParam,
-    ServiceTier, StopReason, StructuredOutputError, SystemPrompt, SystemPromptBlock, Temperature,
-    TemperatureError, TextCitation, TextCitationParam, ThinkingBudgetTokens,
-    ThinkingBudgetTokensError, ThinkingConfig, ThinkingDisplay, ThinkingTurnCount,
-    ThinkingTurnCountError, ThinkingTurnsKeep, Tool, ToolChoice, ToolInputDecodeError, ToolName,
-    ToolUse, ToolUseCount, ToolUseCountError, ToolUsesKeep, TopK, TopKError, TopP, TopPError,
-    Usage,
+    ServerToolUsage, ServiceTier, StopReason, StructuredOutputError, SystemPrompt,
+    SystemPromptBlock, Temperature, TemperatureError, TextCitation, TextCitationParam,
+    ThinkingBudgetTokens, ThinkingBudgetTokensError, ThinkingConfig, ThinkingDisplay,
+    ThinkingTurnCount, ThinkingTurnCountError, ThinkingTurnsKeep, Tool, ToolChoice,
+    ToolInputDecodeError, ToolName, ToolUse, ToolUseCount, ToolUseCountError, ToolUsesKeep, TopK,
+    TopKError, TopP, TopPError, Usage, UsageServiceTier,
 };

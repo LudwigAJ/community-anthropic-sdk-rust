@@ -87,15 +87,16 @@ pub use content::{
 };
 pub use error::{ApiErrorBody, ApiErrorDetail, ApiErrorType};
 pub use message::{
-    ClearToolInputs, ContextManagementConfig, ContextManagementEdit, ContextManagementTrigger,
-    ContextTokenCount, ContextTokenCountError, InputTokensThreshold, McpServer, McpServerError,
-    McpServerToolConfiguration, Message, MessageCountTokensParams, MessageCountTokensParamsBuilder,
-    MessageCountTokensParamsError, MessageCreateParams, MessageCreateParamsBuilder,
-    MessageCreateParamsError, MessageParam, MessageParamConversionError, MessageTokensCount,
-    OutputConfig, OutputFormat, Role, ServiceTier, StopReason, StructuredOutputError, SystemPrompt,
+    CacheCreation, ClearToolInputs, ContextManagementConfig, ContextManagementEdit,
+    ContextManagementTrigger, ContextTokenCount, ContextTokenCountError, InputTokensThreshold,
+    McpServer, McpServerError, McpServerToolConfiguration, Message, MessageCountTokensParams,
+    MessageCountTokensParamsBuilder, MessageCountTokensParamsError, MessageCreateParams,
+    MessageCreateParamsBuilder, MessageCreateParamsError, MessageParam,
+    MessageParamConversionError, MessageTokensCount, OutputConfig, OutputFormat, Role,
+    ServerToolUsage, ServiceTier, StopReason, StructuredOutputError, SystemPrompt,
     SystemPromptBlock, ThinkingBudgetTokens, ThinkingBudgetTokensError, ThinkingConfig,
     ThinkingDisplay, ThinkingTurnCount, ThinkingTurnCountError, ThinkingTurnsKeep, ToolUseCount,
-    ToolUseCountError, ToolUsesKeep, Usage,
+    ToolUseCountError, ToolUsesKeep, Usage, UsageServiceTier,
 };
 pub use model::{Model, ModelInfo};
 pub use pagination::{ListParams, ListParamsBuilder, ListParamsError, Page};

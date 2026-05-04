@@ -471,6 +471,11 @@ impl Stream for MessageStream {
 /// This stream wraps [`MessageStream`], yields only `text_delta` content as
 /// owned string chunks, ignores non-text events, propagates stream errors, and
 /// ends when the underlying message emits `message_stop`.
+///
+/// `TextStream` is intentionally lossy: it does not expose non-text content,
+/// accumulate a final [`Message`], validate streamed tool-input JSON, or report
+/// an error when the HTTP body ends before `message_stop`. Use
+/// [`MessageStream::final_message`] when the complete response shape matters.
 pub struct TextStream {
     inner: MessageStream,
     finished: bool,
@@ -590,7 +595,7 @@ mod tests {
 
     use super::*;
     use crate::ApiErrorKind;
-    use anthropic_types::{ApiErrorType, ContentBlockDelta, TextCitation};
+    use anthropic_types::{ApiErrorType, ContentBlockDelta, ServerToolUsage, TextCitation};
 
     fn stream_from_chunks(chunks: impl IntoIterator<Item = &'static [u8]>) -> MessageStream {
         let chunks = chunks
@@ -783,6 +788,34 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn parses_crlf_frames_split_across_boundaries() -> Result<(), Box<dyn std::error::Error>>
+    {
+        let mut stream = stream_from_chunks([
+            b"event: content_block_delta\r\ndata: {\"type\":\"content_block_delta\",\"index\":0,"
+                as &'static [u8],
+            b"\"delta\":{\"type\":\"text_delta\",\"text\":\"crlf\"}}\r",
+            b"\n\r\n",
+        ]);
+
+        let event = stream
+            .next()
+            .await
+            .ok_or_else(|| std::io::Error::other("expected stream event"))??;
+
+        assert_eq!(
+            event,
+            MessageStreamEvent::ContentBlockDelta {
+                index: 0,
+                delta: ContentBlockDelta::Text {
+                    text: "crlf".to_owned()
+                }
+            }
+        );
+        assert!(stream.next().await.is_none());
+        Ok(())
+    }
+
+    #[tokio::test]
     async fn parses_known_sse_event_name_when_payload_type_is_omitted()
     -> Result<(), Box<dyn std::error::Error>> {
         let mut stream = stream_from_chunks([
@@ -803,6 +836,31 @@ mod tests {
                     text: "Hi".to_owned()
                 },
             }
+        );
+        assert!(stream.next().await.is_none());
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn parses_anthropic_style_event_and_payload_type()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let mut stream = stream_from_chunks([
+            b"event: ping\ndata: {\"type\":\"ping\"}\n\n" as &'static [u8],
+            b"event: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"typed\"}}\n\n",
+        ]);
+
+        assert_eq!(
+            stream.next().await.transpose()?,
+            Some(MessageStreamEvent::Ping)
+        );
+        assert_eq!(
+            stream.next().await.transpose()?,
+            Some(MessageStreamEvent::ContentBlockDelta {
+                index: 0,
+                delta: ContentBlockDelta::Text {
+                    text: "typed".to_owned()
+                },
+            })
         );
         assert!(stream.next().await.is_none());
         Ok(())
@@ -841,6 +899,32 @@ mod tests {
                         .map(|body| body.error.error_type.clone()),
                     Some(ApiErrorType::Overloaded)
                 );
+            }
+            other => {
+                return Err(std::io::Error::other(format!(
+                    "expected API stream error, got {other:?}"
+                ))
+                .into());
+            }
+        }
+
+        assert!(stream.next().await.is_none());
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn maps_payload_typed_error_events_to_api_errors()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let mut stream = stream_from_chunks([b"event: message\ndata: {\"type\":\"error\",\"error\":{\"type\":\"rate_limit_error\",\"message\":\"Slow down\"}}\n\n" as &'static [u8]]);
+
+        match stream
+            .next()
+            .await
+            .ok_or_else(|| std::io::Error::other("expected stream error"))?
+        {
+            Err(Error::Api(api_error)) => {
+                assert_eq!(api_error.kind, ApiErrorKind::RateLimit);
+                assert_eq!(api_error.message, "Slow down");
             }
             other => {
                 return Err(std::io::Error::other(format!(
@@ -1304,6 +1388,27 @@ mod tests {
         assert_eq!(message.usage.cache_read_input_tokens, Some(13));
         assert_eq!(message.usage.output_tokens, 6);
         assert_eq!(message.usage.total_input_tokens(), 21);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn final_message_merges_stream_server_tool_usage()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let stream = stream_from_chunks([
+            message_start_frame(),
+            b"event: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\",\"stop_sequence\":null},\"usage\":{\"output_tokens\":6,\"server_tool_use\":{\"web_fetch_requests\":1,\"web_search_requests\":2}}}\n\n" as &'static [u8],
+            message_stop_frame(),
+        ]);
+
+        let message = stream.final_message().await?;
+
+        assert_eq!(
+            message.usage.server_tool_use,
+            Some(ServerToolUsage {
+                web_fetch_requests: 1,
+                web_search_requests: 2,
+            })
+        );
         Ok(())
     }
 

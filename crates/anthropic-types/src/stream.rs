@@ -16,7 +16,9 @@
 
 use serde::{Deserialize, Deserializer, Serialize, de};
 
-use crate::{ApiErrorDetail, ContentBlock, Message, StopReason, TextCitation, Usage};
+use crate::{
+    ApiErrorDetail, ContentBlock, Message, ServerToolUsage, StopReason, TextCitation, Usage,
+};
 
 /// A streamed message event.
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -230,6 +232,9 @@ pub struct MessageDeltaUsage {
     pub input_tokens: Option<u32>,
     /// Cumulative output tokens.
     pub output_tokens: u32,
+    /// Cumulative server-side tool request counts, when reported.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub server_tool_use: Option<ServerToolUsage>,
 }
 
 impl MessageDeltaUsage {
@@ -244,6 +249,9 @@ impl MessageDeltaUsage {
         }
         if let Some(cache_read_input_tokens) = self.cache_read_input_tokens {
             usage.cache_read_input_tokens = Some(cache_read_input_tokens);
+        }
+        if let Some(server_tool_use) = self.server_tool_use {
+            usage.server_tool_use = Some(server_tool_use);
         }
     }
 }
@@ -280,6 +288,7 @@ mod tests {
                     cache_read_input_tokens: None,
                     input_tokens: Some(0),
                     output_tokens: 7,
+                    server_tool_use: None,
                 }),
             }
         );
@@ -316,6 +325,48 @@ mod tests {
                     cache_read_input_tokens: Some(13),
                     input_tokens: None,
                     output_tokens: 7,
+                    server_tool_use: None,
+                }),
+            }
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn deserializes_message_delta_server_tool_usage() -> Result<(), Box<dyn std::error::Error>> {
+        let event = serde_json::from_str::<MessageStreamEvent>(
+            r#"{
+                "type": "message_delta",
+                "delta": {
+                    "stop_reason": null,
+                    "stop_sequence": null
+                },
+                "usage": {
+                    "output_tokens": 7,
+                    "server_tool_use": {
+                        "web_fetch_requests": 1,
+                        "web_search_requests": 2
+                    }
+                }
+            }"#,
+        )?;
+
+        assert_eq!(
+            event,
+            MessageStreamEvent::MessageDelta {
+                delta: MessageDelta {
+                    stop_reason: None,
+                    stop_sequence: None,
+                },
+                usage: Some(MessageDeltaUsage {
+                    cache_creation_input_tokens: None,
+                    cache_read_input_tokens: None,
+                    input_tokens: None,
+                    output_tokens: 7,
+                    server_tool_use: Some(ServerToolUsage {
+                        web_fetch_requests: 1,
+                        web_search_requests: 2,
+                    }),
                 }),
             }
         );
